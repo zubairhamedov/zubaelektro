@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import ProgressRing from "@/components/ProgressRing";
 import BottomTab from "@/components/BottomTab";
-import { getCurrentProfile, getLearningProgress } from "@/lib/supabase";
+import { getLearningProgress } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 
 const categories = [
   { href: "/darslar", label: "Darslar", icon: GraduationCap, color: "bg-orange-500/15 text-orange-400" },
@@ -22,45 +23,39 @@ const categories = [
 ];
 
 export default function HomePage() {
-  const [fullName, setFullName] = useState("");
+  const { profile, loading: profileLoading } = useAuth();
   const [totalLessons, setTotalLessons] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [nextLesson, setNextLesson] = useState<{ slug: string; title: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [progressLoading, setProgressLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const [profile, progress] = await Promise.all([
-        getCurrentProfile(),
-        getLearningProgress(),
-      ]);
-      setFullName(profile?.full_name || "");
+      const progress = await getLearningProgress();
       setTotalLessons(progress.totalLessons);
       setCompletedCount(progress.completedCount);
       setNextLesson(progress.nextLesson);
-      setLoading(false);
+      setProgressLoading(false);
     }
     load();
   }, []);
 
   const remaining = Math.max(totalLessons - completedCount, 0);
   const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
-  const nextProgressPercent =
-    totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   return (
     <div className="min-h-screen pb-28">
       <div className="mx-auto max-w-md px-5 pt-8">
         <p className="text-sm text-textSecondary">Assalomu alaykum,</p>
         <h1 className="font-display text-2xl font-bold">
-          {loading ? "..." : fullName || "Foydalanuvchi"}!
+          {profileLoading ? "\u00A0" : `${profile?.full_name || "Foydalanuvchi"}!`}
         </h1>
 
         <div className="mt-6 flex items-center justify-between rounded-xl2 border border-accent/20 bg-surface p-5 shadow-card">
           <div>
             <p className="text-sm text-textSecondary">Elektrik ustasi bo'lishga</p>
             <p className="font-display text-lg font-bold text-accent">
-              {remaining} ta dars qoldi
+              {progressLoading ? "\u00A0" : `${remaining} ta dars qoldi`}
             </p>
             <div className="mt-3 flex items-center gap-1 text-xs text-textSecondary">
               <Zap size={14} className="text-accent" />
@@ -99,7 +94,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {nextLesson && (
+        {!progressLoading && nextLesson && (
           <div className="mt-8">
             <h2 className="mb-3 font-display text-lg font-semibold">
               Davom etish
@@ -117,7 +112,7 @@ export default function HomePage() {
                   <div className="mt-1.5 h-1.5 w-32 rounded-full bg-white/10">
                     <div
                       className="h-1.5 rounded-full bg-accent"
-                      style={{ width: `${nextProgressPercent}%` }}
+                      style={{ width: `${percent}%` }}
                     />
                   </div>
                   <p className="mt-1 text-xs text-textSecondary">

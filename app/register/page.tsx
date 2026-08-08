@@ -9,7 +9,7 @@ import { registerWithPhone } from "@/lib/supabase";
 export default function RegisterPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("+998");
+  const [phone, setPhone] = useState("+996");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,9 +41,6 @@ export default function RegisterPage() {
           <h1 className="font-display text-2xl font-bold">
             Ro'yxatdan o'tish
           </h1>
-          <p className="text-sm text-textSecondary">
-            Elektrik bo'lish sari birinchi qadam
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -56,7 +53,7 @@ export default function RegisterPage() {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Muzaffar Xamedov"
+              placeholder="Ism familiyangiz"
               className="w-full rounded-xl2 border border-white/10 bg-surface px-4 py-3.5 text-textPrimary outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
@@ -69,7 +66,7 @@ export default function RegisterPage() {
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+998 90 123 45 67"
+              placeholder="+996 700 12 34 56"
               className="w-full rounded-xl2 border border-white/10 bg-surface px-4 py-3.5 text-textPrimary outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>

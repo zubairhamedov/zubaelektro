@@ -90,3 +90,54 @@ export async function getLearningProgress() {
 
   return { totalLessons, completedCount, nextLesson };
 }
+
+// Ism-familiya va telefon raqamni yangilash.
+// Telefon o'zgarsa, ichki email ham (login uchun) yangilanadi.
+export async function updateProfile(fullName: string, newPhone: string) {
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) return { error: new Error("Foydalanuvchi topilmadi") };
+
+  const newEmail = phoneToInternalEmail(newPhone);
+
+  if (newEmail !== user.email) {
+    const { error: emailError } = await supabase.auth.updateUser({
+      email: newEmail,
+      data: { full_name: fullName, phone: newPhone },
+    });
+    if (emailError) return { error: emailError };
+  } else {
+    const { error: metaError } = await supabase.auth.updateUser({
+      data: { full_name: fullName, phone: newPhone },
+    });
+    if (metaError) return { error: metaError };
+  }
+
+  const { error: profileError } = await supabase
+    .from("user_profiles")
+    .update({ full_name: fullName, phone: newPhone })
+    .eq("id", user.id);
+
+  return { error: profileError };
+}
+
+// Eski parolni tekshirib, keyin yangi parolni o'rnatish.
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+) {
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user?.email) return { error: new Error("Foydalanuvchi topilmadi") };
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (verifyError) {
+    return { error: new Error("Eski parol noto'g'ri") };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  return { error };
+}

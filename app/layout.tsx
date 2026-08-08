@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import type { Metadata } from "next";
+import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "ZubaElektro — Elektrik bo'lishni o'rgan",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uz">
-      <body className="min-h-screen bg-bg text-textPrimary">{children}</body>
+      <body className="min-h-screen bg-bg text-textPrimary">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

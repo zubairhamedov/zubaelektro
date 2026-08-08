@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Phone, Settings, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { Phone, LogOut, Globe } from "lucide-react";
+import { supabase, logout } from "@/lib/supabase";
+import ThemeToggle from "@/components/ThemeToggle";
 import BottomTab from "@/components/BottomTab";
 
 export default function ProfilPage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [lessonsDone, setLessonsDone] = useState(0);
 
@@ -33,21 +35,32 @@ export default function ProfilPage() {
     load();
   }, []);
 
-  const initial = profile?.full_name?.[0]?.toUpperCase() || "?";
+  function getInitials(fullName: string | undefined) {
+    if (!fullName) return "?";
+    const parts = fullName.trim().split(/\s+/);
+    const first = parts[0]?.[0] || "";
+    const second = parts[1]?.[0] || "";
+    return (first + second).toUpperCase();
+  }
+
+  async function handleLogout() {
+    await logout();
+    router.push("/login");
+  }
 
   return (
     <div className="min-h-screen pb-28">
       <div className="mx-auto max-w-md px-5 pt-10">
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent text-2xl font-bold text-accent">
-            {initial}
+            {getInitials(profile?.full_name)}
           </div>
           <h1 className="font-display text-xl font-bold">
             {profile?.full_name || "Foydalanuvchi"}
           </h1>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-xl2 bg-surface p-4 text-center shadow-card">
             <p className="font-display text-xl font-bold text-accent">
               {lessonsDone}
@@ -58,30 +71,34 @@ export default function ProfilPage() {
             <p className="font-display text-xl font-bold text-accent">0</p>
             <p className="text-xs text-textSecondary">Testlar</p>
           </div>
-          <div className="rounded-xl2 bg-surface p-4 text-center shadow-card">
-            <p className="font-display text-xl font-bold text-accent">1</p>
-            <p className="text-xs text-textSecondary">Daqiqa</p>
-          </div>
         </div>
 
-        <div className="mt-6 flex items-center gap-3 rounded-xl2 bg-surface p-4 shadow-card">
-          <Phone size={18} className="text-textSecondary" />
-          <div>
-            <p className="text-xs text-textSecondary">Telefon</p>
-            <p className="text-sm">{profile?.phone || "-"}</p>
-          </div>
-        </div>
-
-        <Link
-          href="/sozlamalar"
-          className="mt-4 flex items-center justify-between rounded-xl2 bg-surface p-4 shadow-card active:bg-surfaceHover"
-        >
+        <div className="mt-6 flex items-center justify-between rounded-xl2 bg-surface p-4 shadow-card">
           <div className="flex items-center gap-3">
-            <Settings size={18} className="text-textSecondary" />
-            <span className="text-sm">Sozlamalar</span>
+            <Phone size={18} className="text-textSecondary" />
+            <div>
+              <p className="text-xs text-textSecondary">Telefon</p>
+              <p className="text-sm">{profile?.phone || "-"}</p>
+            </div>
           </div>
-          <ChevronRight size={18} className="text-textSecondary" />
-        </Link>
+          <ThemeToggle />
+        </div>
+
+        <div className="mt-4 flex items-center justify-between rounded-xl2 bg-surface p-4 shadow-card">
+          <div className="flex items-center gap-3">
+            <Globe size={18} className="text-textSecondary" />
+            <span className="text-sm">Til</span>
+          </div>
+          <span className="text-sm text-textSecondary">O'zbekcha</span>
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl2 border border-danger/30 bg-danger/10 py-3.5 font-medium text-danger active:opacity-80"
+        >
+          <LogOut size={18} />
+          Chiqish
+        </button>
       </div>
       <BottomTab />
     </div>

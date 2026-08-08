@@ -2,12 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #0f1420;
+  --surface: #1a2133;
+  --surfaceHover: #212a40;
+  --textPrimary: #f5f7fa;
+  --textSecondary: #8a93a6;
+}
+
+.light {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surfaceHover: #eceef2;
+  --textPrimary: #12151c;
+  --textSecondary: #5b6472;
+}
+
 html,
 body {
-  background-color: #0f1420;
-  color: #f5f7fa;
+  background-color: var(--bg);
+  color: var(--textPrimary);
   font-family: -apple-system, "SF Pro Display", Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 * {
@@ -23,6 +40,10 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   background: rgba(15, 20, 32, 0.85);
+}
+
+.light .tab-blur {
+  background: rgba(245, 247, 250, 0.85);
 }
 
 @media (prefers-reduced-motion: reduce) {

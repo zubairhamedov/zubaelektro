@@ -4,15 +4,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bg: "#0F1420",
-        surface: "#1A2133",
-        surfaceHover: "#212A40",
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        surfaceHover: "var(--surfaceHover)",
         accent: "#FFC93C",
         accentDim: "#2A2410",
         success: "#34D399",
         danger: "#F87171",
-        textPrimary: "#F5F7FA",
-        textSecondary: "#8A93A6",
+        textPrimary: "var(--textPrimary)",
+        textSecondary: "var(--textSecondary)",
       },
       fontFamily: {
         display: [

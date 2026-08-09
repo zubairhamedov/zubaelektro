@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function LessonDetailPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params?.slug as string;
+  const { refreshProgress } = useAuth();
 
   const [lesson, setLesson] = useState<any>(null);
   const [completed, setCompleted] = useState(false);
@@ -37,6 +39,7 @@ export default function LessonDetailPage() {
       completed_at: new Date().toISOString(),
     });
     setCompleted(true);
+    refreshProgress();
   }
 
   if (loading) {

@@ -2,29 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, LogOut, Globe } from "lucide-react";
+import Link from "next/link";
+import { Phone, LogOut, Globe, Pencil } from "lucide-react";
 import { supabase, logout } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import BottomTab from "@/components/BottomTab";
 
 export default function ProfilPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
+  const { profile, loading } = useAuth();
   const [lessonsDone, setLessonsDone] = useState(0);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
-    async function load() {
+    async function loadStats() {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData?.user;
       if (!user) return;
-
-      const { data: profileData } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-      setProfile(profileData);
-
       const { count } = await supabase
         .from("user_progress")
         .select("*", { count: "exact", head: true })
@@ -32,7 +28,7 @@ export default function ProfilPage() {
         .eq("completed", true);
       setLessonsDone(count || 0);
     }
-    load();
+    loadStats();
   }, []);
 
   function getInitials(fullName: string | undefined) {
@@ -43,7 +39,8 @@ export default function ProfilPage() {
     return (first + second).toUpperCase();
   }
 
-  async function handleLogout() {
+  async function handleConfirmLogout() {
+    setLoggingOut(true);
     await logout();
     router.push("/login");
   }
@@ -53,11 +50,18 @@ export default function ProfilPage() {
       <div className="mx-auto max-w-md px-5 pt-10">
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent text-2xl font-bold text-accent">
-            {getInitials(profile?.full_name)}
+            {loading ? "" : getInitials(profile?.full_name)}
           </div>
           <h1 className="font-display text-xl font-bold">
-            {profile?.full_name || "Foydalanuvchi"}
+            {loading ? "\u00A0" : profile?.full_name || "Foydalanuvchi"}
           </h1>
+          <Link
+            href="/profil/tahrirlash"
+            className="flex items-center gap-1.5 text-sm text-accent"
+          >
+            <Pencil size={14} />
+            Tahrirlash
+          </Link>
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
@@ -93,7 +97,7 @@ export default function ProfilPage() {
         </div>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl2 border border-danger/30 bg-danger/10 py-3.5 font-medium text-danger active:opacity-80"
         >
           <LogOut size={18} />
@@ -101,6 +105,31 @@ export default function ProfilPage() {
         </button>
       </div>
       <BottomTab />
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div className="w-full max-w-xs rounded-xl2 bg-surface p-6 text-center shadow-card">
+            <p className="font-display text-lg font-semibold">
+              Hisobdan chiqmoqchimisiz?
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 rounded-xl2 border border-white/10 py-3 font-medium text-textPrimary active:bg-surfaceHover"
+              >
+                Yo'q
+              </button>
+              <button
+                onClick={handleConfirmLogout}
+                disabled={loggingOut}
+                className="flex-1 rounded-xl2 bg-danger py-3 font-medium text-white active:opacity-80 disabled:opacity-60"
+              >
+                {loggingOut ? "..." : "Ha"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

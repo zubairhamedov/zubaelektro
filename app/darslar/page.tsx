@@ -1,30 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Lock, PlayCircle } from "lucide-react";
-import { getCachedLessons, fetchLessons } from "@/lib/cache";
+import { useAuth } from "@/components/AuthProvider";
 import BottomTab from "@/components/BottomTab";
 
-type Lesson = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  is_pro: boolean;
-};
-
 export default function DarslarPage() {
-  const cached = getCachedLessons();
-  const [lessons, setLessons] = useState<Lesson[]>(cached || []);
-  const [loading, setLoading] = useState(!cached);
-
-  useEffect(() => {
-    fetchLessons().then((data) => {
-      setLessons(data as Lesson[]);
-      setLoading(false);
-    });
-  }, []);
+  const { lessons, loading } = useAuth();
 
   return (
     <div className="min-h-screen pb-28">

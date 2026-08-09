@@ -1,35 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Phone, LogOut, Globe, Pencil } from "lucide-react";
-import { supabase, logout } from "@/lib/supabase";
+import { logout } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import BottomTab from "@/components/BottomTab";
 
 export default function ProfilPage() {
   const router = useRouter();
-  const { profile, loading } = useAuth();
-  const [lessonsDone, setLessonsDone] = useState(0);
+  const { profile, completedCount, loading } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-
-  useEffect(() => {
-    async function loadStats() {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-      if (!user) return;
-      const { count } = await supabase
-        .from("user_progress")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("completed", true);
-      setLessonsDone(count || 0);
-    }
-    loadStats();
-  }, []);
 
   function getInitials(fullName: string | undefined) {
     if (!fullName) return "?";
@@ -67,7 +51,7 @@ export default function ProfilPage() {
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-xl2 bg-surface p-4 text-center shadow-card">
             <p className="font-display text-xl font-bold text-accent">
-              {lessonsDone}
+              {completedCount}
             </p>
             <p className="text-xs text-textSecondary">Darslar</p>
           </div>

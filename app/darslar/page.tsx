@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Lock, PlayCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { getCachedLessons, fetchLessons } from "@/lib/cache";
 import BottomTab from "@/components/BottomTab";
 
 type Lesson = {
@@ -15,19 +15,15 @@ type Lesson = {
 };
 
 export default function DarslarPage() {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedLessons();
+  const [lessons, setLessons] = useState<Lesson[]>(cached || []);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
-    async function fetchLessons() {
-      const { data } = await supabase
-        .from("lessons")
-        .select("*")
-        .order("order_index", { ascending: true });
-      setLessons(data || []);
+    fetchLessons().then((data) => {
+      setLessons(data as Lesson[]);
       setLoading(false);
-    }
-    fetchLessons();
+    });
   }, []);
 
   return (

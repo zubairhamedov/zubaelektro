@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { HelpCircle, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getCachedTests, fetchTests } from "@/lib/cache";
 import BottomTab from "@/components/BottomTab";
 
 type Test = {
@@ -20,7 +21,8 @@ type Question = {
 };
 
 export default function TestlarPage() {
-  const [tests, setTests] = useState<Test[]>([]);
+  const cached = getCachedTests();
+  const [tests, setTests] = useState<Test[]>(cached || []);
   const [activeTest, setActiveTest] = useState<Test | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
@@ -29,11 +31,7 @@ export default function TestlarPage() {
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
-    async function fetchTests() {
-      const { data } = await supabase.from("tests").select("*");
-      setTests(data || []);
-    }
-    fetchTests();
+    fetchTests().then((data) => setTests(data as Test[]));
   }, []);
 
   async function openTest(test: Test) {

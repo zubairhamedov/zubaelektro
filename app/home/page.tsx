@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -12,7 +11,6 @@ import {
 } from "lucide-react";
 import ProgressRing from "@/components/ProgressRing";
 import BottomTab from "@/components/BottomTab";
-import { getLearningProgress } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 
 const categories = [
@@ -23,22 +21,7 @@ const categories = [
 ];
 
 export default function HomePage() {
-  const { profile, loading: profileLoading } = useAuth();
-  const [totalLessons, setTotalLessons] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [nextLesson, setNextLesson] = useState<{ slug: string; title: string } | null>(null);
-  const [progressLoading, setProgressLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      const progress = await getLearningProgress();
-      setTotalLessons(progress.totalLessons);
-      setCompletedCount(progress.completedCount);
-      setNextLesson(progress.nextLesson);
-      setProgressLoading(false);
-    }
-    load();
-  }, []);
+  const { profile, totalLessons, completedCount, nextLesson, loading } = useAuth();
 
   const remaining = Math.max(totalLessons - completedCount, 0);
   const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
@@ -48,14 +31,14 @@ export default function HomePage() {
       <div className="mx-auto max-w-md px-5 pt-8">
         <p className="text-sm text-textSecondary">Assalomu alaykum,</p>
         <h1 className="font-display text-2xl font-bold">
-          {profileLoading ? "\u00A0" : `${profile?.full_name || "Foydalanuvchi"}!`}
+          {loading ? "\u00A0" : `${profile?.full_name || "Foydalanuvchi"}!`}
         </h1>
 
         <div className="mt-6 flex items-center justify-between rounded-xl2 border border-accent/20 bg-surface p-5 shadow-card">
           <div>
             <p className="text-sm text-textSecondary">Elektrik ustasi bo'lishga</p>
             <p className="font-display text-lg font-bold text-accent">
-              {progressLoading ? "\u00A0" : `${remaining} ta dars qoldi`}
+              {loading ? "\u00A0" : `${remaining} ta dars qoldi`}
             </p>
             <div className="mt-3 flex items-center gap-1 text-xs text-textSecondary">
               <Zap size={14} className="text-accent" />
@@ -94,7 +77,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {!progressLoading && nextLesson && (
+        {!loading && nextLesson && (
           <div className="mt-8">
             <h2 className="mb-3 font-display text-lg font-semibold">
               Davom etish

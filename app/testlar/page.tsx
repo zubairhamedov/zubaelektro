@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { HelpCircle, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { getCachedTests, fetchTests } from "@/lib/cache";
+import { useAuth } from "@/components/AuthProvider";
 import BottomTab from "@/components/BottomTab";
 
 type Test = {
@@ -21,18 +21,13 @@ type Question = {
 };
 
 export default function TestlarPage() {
-  const cached = getCachedTests();
-  const [tests, setTests] = useState<Test[]>(cached || []);
+  const { tests } = useAuth();
   const [activeTest, setActiveTest] = useState<Test | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
-
-  useEffect(() => {
-    fetchTests().then((data) => setTests(data as Test[]));
-  }, []);
 
   async function openTest(test: Test) {
     const { data } = await supabase

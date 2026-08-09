@@ -30,6 +30,7 @@ type AppContextValue = {
   tests: Test[];
   totalLessons: number;
   completedCount: number;
+  completedLessonIds: Set<string>;
   nextLesson: Lesson | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
@@ -42,6 +43,7 @@ const AppContext = createContext<AppContextValue>({
   tests: [],
   totalLessons: 0,
   completedCount: 0,
+  completedLessonIds: new Set(),
   nextLesson: null,
   loading: true,
   refreshProfile: async () => {},
@@ -61,6 +63,7 @@ export default function AuthProvider({
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
   const [nextLesson, setNextLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,6 +92,7 @@ export default function AuthProvider({
         .eq("completed", true);
       const completedIds = new Set((progress || []).map((p) => p.lesson_id));
       setCompletedCount(completedIds.size);
+      setCompletedLessonIds(completedIds);
       const next =
         lessonsData.find((l) => !completedIds.has(l.id)) ||
         lessonsData[lessonsData.length - 1] ||
@@ -96,6 +100,7 @@ export default function AuthProvider({
       setNextLesson(next);
     } else {
       setCompletedCount(0);
+      setCompletedLessonIds(new Set());
       setNextLesson(lessonsData[0] || null);
     }
 
@@ -122,6 +127,7 @@ export default function AuthProvider({
         tests,
         totalLessons: lessons.length,
         completedCount,
+        completedLessonIds,
         nextLesson,
         loading,
         refreshProfile: loadAll,

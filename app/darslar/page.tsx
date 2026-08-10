@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Lock, PlayCircle } from "lucide-react";
+import { ChevronRight, Lock, PlayCircle, Check } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import BottomTab from "@/components/BottomTab";
 
 export default function DarslarPage() {
-  const { lessons, loading } = useAuth();
+  const { lessons, loading, completedLessonIds } = useAuth();
 
   return (
     <div className="min-h-screen pb-28">
@@ -26,30 +26,38 @@ export default function DarslarPage() {
             </p>
           )}
 
-          {lessons.map((lesson) => (
-            <Link
-              key={lesson.id}
-              href={`/darslar/${lesson.slug}`}
-              className="flex items-center justify-between rounded-xl2 bg-surface p-4 shadow-card active:bg-surfaceHover"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl2 bg-white/5 text-accent">
-                  {lesson.is_pro ? (
-                    <Lock size={18} />
-                  ) : (
-                    <PlayCircle size={20} />
-                  )}
+          {lessons.map((lesson) => {
+            const done = completedLessonIds.has(lesson.id);
+            return (
+              <Link
+                key={lesson.id}
+                href={`/darslar/${lesson.slug}`}
+                className="flex items-center justify-between rounded-xl2 bg-surface p-4 shadow-card active:bg-surfaceHover"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative flex h-11 w-11 items-center justify-center rounded-xl2 bg-white/5 text-accent">
+                    {lesson.is_pro ? (
+                      <Lock size={18} />
+                    ) : (
+                      <PlayCircle size={20} />
+                    )}
+                    {done && (
+                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-success text-bg">
+                        <Check size={12} strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">{lesson.title}</p>
+                    <p className="text-xs text-textSecondary">
+                      {lesson.description}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{lesson.title}</p>
-                  <p className="text-xs text-textSecondary">
-                    {lesson.description}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight size={18} className="text-textSecondary" />
-            </Link>
-          ))}
+                <ChevronRight size={18} className="text-textSecondary" />
+              </Link>
+            );
+          })}
         </div>
       </div>
       <BottomTab />

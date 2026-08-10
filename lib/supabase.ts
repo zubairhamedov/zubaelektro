@@ -141,3 +141,26 @@ export async function changePassword(
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   return { error };
 }
+
+// Akkauntni butunlay o'chirish (server-side API route orqali)
+export async function deleteAccount() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) {
+    return { error: new Error("Sessiya topilmadi") };
+  }
+
+  const res = await fetch("/api/delete-account", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accessToken }),
+  });
+
+  const result = await res.json();
+  if (!res.ok) {
+    return { error: new Error(result.error || "Xatolik yuz berdi") };
+  }
+
+  await supabase.auth.signOut();
+  return { error: null };
+}

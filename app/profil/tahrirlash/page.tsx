@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { updateProfile, changePassword } from "@/lib/supabase";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { updateProfile, changePassword, deleteAccount } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 
 export default function TahrirlashPage() {
@@ -22,6 +22,10 @@ export default function TahrirlashPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordError, setPasswordError] = useState("");
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (profile) {
@@ -71,6 +75,18 @@ export default function TahrirlashPage() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError("");
+    const { error } = await deleteAccount();
+    setDeleting(false);
+    if (error) {
+      setDeleteError(error.message || "Xatolik yuz berdi");
+      return;
+    }
+    router.push("/login");
   }
 
   return (
@@ -176,7 +192,56 @@ export default function TahrirlashPage() {
             {passwordSaving ? "O'zgartirilmoqda..." : "Parolni o'zgartirish"}
           </button>
         </form>
+
+        <div className="mt-12 border-t border-white/10 pt-6">
+          <h2 className="font-display text-lg font-semibold text-danger">
+            Xavfli hudud
+          </h2>
+          <p className="mt-1 text-sm text-textSecondary">
+            Akkauntni o'chirsangiz, barcha ma'lumotlaringiz (progress, profil)
+            butunlay o'chiriladi. Shu raqamga keyinchalik yangi akkaunt ochish
+            mumkin bo'ladi.
+          </p>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 border border-danger/30 bg-danger/10 py-3.5 font-medium text-danger active:opacity-80"
+          >
+            <Trash2 size={18} />
+            Akkauntni o'chirish
+          </button>
+        </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div className="w-full max-w-xs rounded-xl2 bg-surface p-6 text-center shadow-card">
+            <p className="font-display text-lg font-semibold">
+              Akkauntni butunlay o'chirasizmi?
+            </p>
+            <p className="mt-2 text-sm text-textSecondary">
+              Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+            {deleteError && (
+              <p className="mt-2 text-sm text-danger">{deleteError}</p>
+            )}
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl2 border border-white/10 py-3 font-medium text-textPrimary active:bg-surfaceHover"
+              >
+                Yo'q
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 rounded-xl2 bg-danger py-3 font-medium text-white active:opacity-80 disabled:opacity-60"
+              >
+                {deleting ? "..." : "Ha"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

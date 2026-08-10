@@ -21,7 +21,7 @@ const categories = [
 ];
 
 export default function HomePage() {
-  const { profile, totalLessons, completedCount, nextLesson, loading } = useAuth();
+  const { totalLessons, completedCount, nextLesson, loading } = useAuth();
 
   const remaining = Math.max(totalLessons - completedCount, 0);
   const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
@@ -29,10 +29,12 @@ export default function HomePage() {
   return (
     <div className="min-h-screen pb-28">
       <div className="mx-auto max-w-md px-5 pt-8">
-        <p className="text-sm text-textSecondary">Assalomu alaykum,</p>
-        <h1 className="font-display text-2xl font-bold">
-          {loading ? "\u00A0" : `${profile?.full_name || "Foydalanuvchi"}!`}
-        </h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/15">
+            <Zap size={22} className="text-accent" strokeWidth={2.2} />
+          </div>
+          <h1 className="font-display text-xl font-bold">ZubaElektro</h1>
+        </div>
 
         <div className="mt-6 flex items-center justify-between rounded-xl2 border border-accent/20 bg-surface p-5 shadow-card">
           <div>

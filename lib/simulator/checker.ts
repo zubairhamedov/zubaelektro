@@ -392,5 +392,35 @@ export const TASKS: Record<string, Task> = {
 };
 
 export function getTask(slug: string) {
+  if (slug === "free") {
+    return {
+      title: "Erkin rejim",
+      instructions:
+        "Xohlagan elementlarni qo'shib, o'zingiz sxema yig'ing va mashq qiling.",
+      allowedElements: Object.keys(ELEMENT_DEFS) as ElementType[],
+      check: (elements: PlacedElement[], wires: Wire[]) => {
+        const manba = findManba(elements);
+        if (!manba)
+          return { success: false, message: "220V Manba qo'shilmagan." };
+        const lampalar = elements.filter((e) => e.type === "lampa");
+        if (lampalar.length === 0) {
+          return {
+            success: true,
+            message: "Sxema saqlandi. (Tekshirish uchun kamida 1 ta lampa qo'shing)",
+          };
+        }
+        const fazaSet = reach(elements, wires, manba.id, "L", "faza");
+        const nolSet = reach(elements, wires, manba.id, "N", "nol");
+        const anyLit = lampalar.some(
+          (l) =>
+            (fazaSet.has(`${l.id}:P1`) && nolSet.has(`${l.id}:P2`)) ||
+            (fazaSet.has(`${l.id}:P2`) && nolSet.has(`${l.id}:P1`))
+        );
+        return anyLit
+          ? { success: true, message: "Chiroq yondi! Zanjir to'g'ri ishlayapti." }
+          : { success: false, message: "Hali hech qanday lampa yonmayapti." };
+      },
+    };
+  }
   return TASKS[slug] || null;
 }

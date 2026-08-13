@@ -9,6 +9,7 @@ import {
   RotateCcw,
   X,
   CheckCircle2,
+  Plus,
 } from "lucide-react";
 import { ELEMENT_DEFS, WIRE_COLOR_HEX } from "@/lib/simulator/elements";
 import { ElementType, PlacedElement, Wire, WireColor } from "@/lib/simulator/types";
@@ -27,6 +28,99 @@ function newId(prefix: string) {
   return `${prefix}_${Date.now()}_${idCounter}`;
 }
 
+const ALL_TYPES = Object.keys(ELEMENT_DEFS) as ElementType[];
+
+function portLabel(portType: string) {
+  if (portType === "L") return "L";
+  if (portType === "N") return "N";
+  if (portType === "PE") return "PE";
+  return "";
+}
+
+function ElementIcon({ type, w, h }: { type: ElementType; w: number; h: number }) {
+  switch (type) {
+    case "manba":
+      return (
+        <>
+          <rect x={0} y={0} width={w} height={h} rx={10} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
+          <path
+            d={`M ${w * 0.52} ${h * 0.15} L ${w * 0.32} ${h * 0.55} L ${w * 0.48} ${h * 0.55} L ${w * 0.4} ${h * 0.88} L ${w * 0.68} ${h * 0.42} L ${w * 0.5} ${h * 0.42} Z`}
+            fill="#FFC93C"
+          />
+          <text x={w / 2} y={h - 4} textAnchor="middle" fontSize={8} fill="#8A93A6">220V</text>
+        </>
+      );
+    case "lampa":
+      return (
+        <>
+          <circle cx={w / 2} cy={h * 0.42} r={h * 0.34} fill="#FFC93C" fillOpacity={0.15} stroke="#FFC93C" strokeWidth={1.5} />
+          <path
+            d={`M ${w * 0.38} ${h * 0.42} q ${w * 0.12} ${h * 0.18} ${w * 0.24} 0`}
+            stroke="#FFC93C"
+            strokeWidth={1.5}
+            fill="none"
+          />
+          <rect x={w * 0.38} y={h * 0.72} width={w * 0.24} height={h * 0.18} rx={2} fill="#8A93A6" />
+        </>
+      );
+    case "kalit":
+      return (
+        <>
+          <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
+          <circle cx={w * 0.28} cy={h * 0.5} r={3} fill="#F5F7FA" />
+          <circle cx={w * 0.72} cy={h * 0.5} r={3} fill="#F5F7FA" />
+          <line x1={w * 0.28} y1={h * 0.5} x2={w * 0.65} y2={h * 0.25} stroke="#F5F7FA" strokeWidth={2} />
+        </>
+      );
+    case "otish_kalit":
+      return (
+        <>
+          <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
+          <circle cx={w * 0.22} cy={h * 0.5} r={3} fill="#F5F7FA" />
+          <circle cx={w * 0.85} cy={h * 0.2} r={3} fill="#F5F7FA" />
+          <circle cx={w * 0.85} cy={h * 0.8} r={3} fill="#F5F7FA" />
+          <line x1={w * 0.22} y1={h * 0.5} x2={w * 0.8} y2={h * 0.22} stroke="#F5F7FA" strokeWidth={2} />
+        </>
+      );
+    case "rozetka":
+      return (
+        <>
+          <circle cx={w / 2} cy={h / 2} r={Math.min(w, h) * 0.46} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
+          <circle cx={w * 0.38} cy={h * 0.42} r={3} fill="#8A93A6" />
+          <circle cx={w * 0.62} cy={h * 0.42} r={3} fill="#8A93A6" />
+          <rect x={w * 0.44} y={h * 0.6} width={w * 0.12} height={3} fill="#34D399" />
+        </>
+      );
+    case "korobka":
+      return (
+        <>
+          <rect
+            x={2} y={2} width={w - 4} height={h - 4} rx={6}
+            fill="#1A2133" stroke="#8A93A6" strokeWidth={1.5} strokeDasharray="4 3"
+          />
+          <circle cx={w / 2} cy={h / 2} r={4} fill="#FFC93C" />
+        </>
+      );
+    case "avtomat":
+      return (
+        <>
+          <rect x={0} y={0} width={w} height={h} rx={6} fill="#1A2133" stroke="#F87171" strokeWidth={1.5} />
+          <rect x={w * 0.4} y={h * 0.2} width={w * 0.2} height={h * 0.6} rx={2} fill="#F87171" />
+        </>
+      );
+    case "uzo":
+      return (
+        <>
+          <rect x={0} y={0} width={w} height={h} rx={6} fill="#1A2133" stroke="#3B82F6" strokeWidth={1.5} />
+          <circle cx={w / 2} cy={h / 2} r={h * 0.22} fill="none" stroke="#3B82F6" strokeWidth={1.5} />
+          <text x={w / 2} y={h / 2 + 3} textAnchor="middle" fontSize={7} fill="#3B82F6">T</text>
+        </>
+      );
+    default:
+      return <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />;
+  }
+}
+
 export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
   const task = getTask(taskSlug);
 
@@ -35,6 +129,7 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
   const [past, setPast] = useState<Snapshot[]>([]);
   const [future, setFuture] = useState<Snapshot[]>([]);
   const [scale, setScale] = useState(1);
+  const [showPalette, setShowPalette] = useState(false);
   const [pendingPort, setPendingPort] = useState<{
     elementId: string;
     portId: string;
@@ -94,15 +189,16 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
 
   function addElement(type: ElementType) {
     pushHistory();
-    const count = elements.filter((e) => e.type === type).length;
+    const count = elements.length;
     const el: PlacedElement = {
       id: newId(type),
       type,
       x: 40 + (count % 3) * 110,
-      y: 40 + Math.floor(elements.length / 3) * 100,
+      y: 40 + Math.floor(count / 3) * 100,
     };
     setElements((prev) => [...prev, el]);
     setResult(null);
+    setShowPalette(false);
   }
 
   function deleteElement(id: string) {
@@ -212,254 +308,3 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
   }
 
   function handlePointerUp() {
-    if (dragRef.current) {
-      pushHistory();
-    }
-    dragRef.current = null;
-  }
-
-  function runCheck() {
-    const res = task!.check(elements, wires);
-    setResult(res);
-    if (res.success) {
-      onSuccess();
-    }
-  }
-
-  const svgRef = useRef<SVGSVGElement | null>(null);
-
-  return (
-    <div className="flex h-full flex-col bg-bg">
-      <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setScale((s) => Math.max(0.5, s - 0.1))}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover"
-          >
-            <ZoomOut size={16} />
-          </button>
-          <button
-            onClick={() => setScale((s) => Math.min(2, s + 0.1))}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover"
-          >
-            <ZoomIn size={16} />
-          </button>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={undo}
-            disabled={past.length === 0}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover disabled:opacity-30"
-          >
-            <Undo2 size={16} />
-          </button>
-          <button
-            onClick={redo}
-            disabled={future.length === 0}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover disabled:opacity-30"
-          >
-            <Redo2 size={16} />
-          </button>
-          <button
-            onClick={resetAll}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="border-b border-white/10 bg-surface/50 px-4 py-2.5">
-        <p className="text-xs text-textSecondary">{task.instructions}</p>
-      </div>
-
-      <div className="relative flex-1 overflow-auto">
-        <svg
-          ref={svgRef}
-          width={800 * scale}
-          height={500 * scale}
-          viewBox="0 0 800 500"
-          style={{ width: 800 * scale, height: 500 * scale }}
-          onPointerMove={(e) => handlePointerMove(e, svgRef.current)}
-          onPointerUp={handlePointerUp}
-          className="touch-none"
-        >
-          {wires.map((w) => {
-            const fromEl = elements.find((e) => e.id === w.fromElementId);
-            const toEl = elements.find((e) => e.id === w.toElementId);
-            if (!fromEl || !toEl) return null;
-            const from = portPos(fromEl, w.fromPort);
-            const to = portPos(toEl, w.toPort);
-            return (
-              <line
-                key={w.id}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                stroke={WIRE_COLOR_HEX[w.color]}
-                strokeWidth={3}
-                strokeLinecap="round"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  deleteWire(w.id);
-                }}
-              />
-            );
-          })}
-
-          {elements.map((el) => {
-            const def = ELEMENT_DEFS[el.type];
-            return (
-              <g key={el.id}>
-                <g
-                  onPointerDown={(e) => handlePointerDown(e, el)}
-                  style={{ cursor: "grab" }}
-                >
-                  <rect
-                    x={el.x}
-                    y={el.y}
-                    width={def.width}
-                    height={def.height}
-                    rx={10}
-                    fill="#1A2133"
-                    stroke="#FFC93C"
-                    strokeWidth={1.5}
-                  />
-                  <text
-                    x={el.x + def.width / 2}
-                    y={el.y + def.height / 2 + 4}
-                    textAnchor="middle"
-                    fontSize={11}
-                    fill="#F5F7FA"
-                  >
-                    {def.label}
-                  </text>
-                  <circle
-                    cx={el.x + def.width - 6}
-                    cy={el.y + 6}
-                    r={7}
-                    fill="#F87171"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      deleteElement(el.id);
-                    }}
-                  />
-                  <text
-                    x={el.x + def.width - 6}
-                    y={el.y + 9}
-                    textAnchor="middle"
-                    fontSize={9}
-                    fill="#0F1420"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      deleteElement(el.id);
-                    }}
-                  >
-                    x
-                  </text>
-                </g>
-
-                {def.ports.map((port) => {
-                  const pos = portPos(el, port.id);
-                  const isPending =
-                    pendingPort?.elementId === el.id &&
-                    pendingPort?.portId === port.id;
-                  const colorHex =
-                    port.type === "L"
-                      ? WIRE_COLOR_HEX.faza
-                      : port.type === "N"
-                      ? WIRE_COLOR_HEX.nol
-                      : port.type === "PE"
-                      ? WIRE_COLOR_HEX.yer
-                      : "#8A93A6";
-                  return (
-                    <circle
-                      key={port.id}
-                      cx={pos.x}
-                      cy={pos.y}
-                      r={isPending ? 8 : 6}
-                      fill={colorHex}
-                      stroke={isPending ? "#FFC93C" : "#0F1420"}
-                      strokeWidth={isPending ? 2 : 1}
-                      onPointerDown={(e) => {
-                        e.stopPropagation();
-                        onPortTap(el.id, port.id, port.type);
-                      }}
-                    />
-                  );
-                })}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {result && (
-        <div
-          className={`px-4 py-3 text-sm ${
-            result.success
-              ? "bg-success/15 text-success"
-              : "bg-danger/15 text-danger"
-          }`}
-        >
-          {result.message}
-        </div>
-      )}
-
-      <div className="border-t border-white/10 px-3 py-3">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {task.allowedElements.map((type) => (
-            <button
-              key={type}
-              onClick={() => addElement(type)}
-              className="flex shrink-0 flex-col items-center gap-1 rounded-xl2 border border-white/10 bg-surface px-3 py-2 active:bg-surfaceHover"
-            >
-              <span className="text-xs font-medium text-textPrimary">
-                + {ELEMENT_DEFS[type].label}
-              </span>
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={runCheck}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl2 bg-accent py-3.5 font-display font-semibold text-bg active:opacity-80"
-        >
-          <CheckCircle2 size={20} />
-          Tekshirish
-        </button>
-      </div>
-
-      {colorPickerFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
-          <div className="w-full max-w-xs rounded-xl2 bg-surface p-5 text-center shadow-card">
-            <p className="mb-4 font-display font-semibold">Sim rangini tanlang</p>
-            <div className="flex justify-center gap-3">
-              {(["faza", "nol", "yer"] as WireColor[]).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => pickColorForPending(c)}
-                  className="flex h-14 w-14 items-center justify-center rounded-full"
-                  style={{ backgroundColor: WIRE_COLOR_HEX[c] }}
-                >
-                  <span className="text-[10px] font-bold text-bg">
-                    {c === "faza" ? "L" : c === "nol" ? "N" : "PE"}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => {
-                setColorPickerFor(null);
-                setPendingPort(null);
-              }}
-              className="mt-4 flex items-center justify-center gap-1 text-sm text-textSecondary"
-            >
-              <X size={14} /> Bekor qilish
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

@@ -106,9 +106,25 @@ export const ELEMENT_DEFS: Record<ElementType, ElementDef> = {
     internalLinks: [["IN", "OUT"]],
   },
 };
-
 export const WIRE_COLOR_HEX: Record<string, string> = {
   faza: "#EF4444",
   nol: "#3B82F6",
   yer: "#22C55E",
 };
+
+export const TOGGLEABLE_TYPES: ElementType[] = ["kalit", "otish_kalit", "avtomat", "uzo"];
+
+export function getActiveLinks(el: {
+  type: ElementType;
+  state?: boolean | "OUT1" | "OUT2";
+}): [string, string][] {
+  const def = ELEMENT_DEFS[el.type];
+  if (el.type === "otish_kalit") {
+    return el.state === "OUT2" ? [["COM", "OUT2"]] : [["COM", "OUT1"]];
+  }
+  if (el.type === "kalit" || el.type === "avtomat" || el.type === "uzo") {
+    return el.state === false ? [] : def.internalLinks;
+  }
+  return def.internalLinks;
+}
+

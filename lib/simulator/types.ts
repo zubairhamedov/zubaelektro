@@ -34,7 +34,9 @@ export type PlacedElement = {
   type: ElementType;
   x: number;
   y: number;
+  state?: boolean | "OUT1" | "OUT2";
 };
+
 
 export type Wire = {
   id: string;

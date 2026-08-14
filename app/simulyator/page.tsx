@@ -17,9 +17,10 @@ export default function FreeSimulyatorPage() {
           <ArrowLeft size={20} />
           <span className="text-sm">Orqaga</span>
         </button>
-        <h1 className="ml-2 font-display text-base font-semibold">
-          Simulyator (Erkin rejim)
+               <h1 className="ml-2 font-display text-base font-semibold">
+          Simulyator
         </h1>
+
       </div>
 
       <div className="flex-1 overflow-hidden">

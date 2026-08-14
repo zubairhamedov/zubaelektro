@@ -17,7 +17,8 @@ const categories = [
   { href: "/darslar", label: "Darslar", icon: GraduationCap, color: "bg-orange-500/15 text-orange-400" },
   { href: "/testlar", label: "Testlar", icon: HelpCircle, color: "bg-purple-500/15 text-purple-400" },
   { href: "/darslar?tab=sxemalar", label: "Sxemalar", icon: Share2, color: "bg-blue-500/15 text-blue-400" },
-  { href: "/darslar?tab=simulator", label: "Simulyator", icon: PlayCircle, color: "bg-green-500/15 text-green-400" },
+  { href: "/simulyator", label: "Simulyator", icon: PlayCircle, color: "bg-green-500/15 text-green-400" },
+
 ];
 
 export default function HomePage() {

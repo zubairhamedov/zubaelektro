@@ -1,26 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
-import {
-  ZoomIn,
-  ZoomOut,
-  Undo2,
-  Redo2,
-  RotateCcw,
-  X,
-  CheckCircle2,
-  Plus,
-} from "lucide-react";
-import { ELEMENT_DEFS, WIRE_COLOR_HEX } from "@/lib/simulator/elements";
+import { useEffect, useRef, useState } from "react";
+import { ZoomIn, ZoomOut, Trash2, X, Plus } from "lucide-react";
+import { ELEMENT_DEFS, WIRE_COLOR_HEX, TOGGLEABLE_TYPES } from "@/lib/simulator/elements";
 import { ElementType, PlacedElement, Wire, WireColor } from "@/lib/simulator/types";
-import { getTask } from "@/lib/simulator/checker";
+import { getTask, computeLitLamps } from "@/lib/simulator/checker";
 
 type Props = {
   taskSlug: string;
   onSuccess: () => void;
 };
-
-type Snapshot = { elements: PlacedElement[]; wires: Wire[] };
 
 let idCounter = 0;
 function newId(prefix: string) {
@@ -30,58 +19,88 @@ function newId(prefix: string) {
 
 const ALL_TYPES = Object.keys(ELEMENT_DEFS) as ElementType[];
 
-function portLabel(portType: string) {
-  if (portType === "L") return "L";
-  if (portType === "N") return "N";
-  if (portType === "PE") return "PE";
-  return "";
+function isOn(el: PlacedElement) {
+  if (el.type === "otish_kalit") return el.state !== "OUT2" ? "OUT1" : "OUT2";
+  return el.state !== false;
 }
 
-function ElementIcon({ type, w, h }: { type: ElementType; w: number; h: number }) {
+function ElementIcon({
+  type,
+  w,
+  h,
+  el,
+  lit,
+}: {
+  type: ElementType;
+  w: number;
+  h: number;
+  el?: PlacedElement;
+  lit?: boolean;
+}) {
   switch (type) {
     case "manba":
       return (
         <>
           <rect x={0} y={0} width={w} height={h} rx={10} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
           <path
-            d={`M ${w * 0.52} ${h * 0.15} L ${w * 0.32} ${h * 0.55} L ${w * 0.48} ${h * 0.55} L ${w * 0.4} ${h * 0.88} L ${w * 0.68} ${h * 0.42} L ${w * 0.5} ${h * 0.42} Z`}
+            d={`M ${w * 0.52} ${h * 0.14} L ${w * 0.32} ${h * 0.52} L ${w * 0.47} ${h * 0.52} L ${w * 0.4} ${h * 0.86} L ${w * 0.68} ${h * 0.4} L ${w * 0.5} ${h * 0.4} Z`}
             fill="#FFC93C"
           />
           <text x={w / 2} y={h - 4} textAnchor="middle" fontSize={8} fill="#8A93A6">220V</text>
         </>
       );
-    case "lampa":
+    case "lampa": {
+      const glow = lit ?? false;
       return (
         <>
-          <circle cx={w / 2} cy={h * 0.42} r={h * 0.34} fill="#FFC93C" fillOpacity={0.15} stroke="#FFC93C" strokeWidth={1.5} />
-          <path
-            d={`M ${w * 0.38} ${h * 0.42} q ${w * 0.12} ${h * 0.18} ${w * 0.24} 0`}
+          {glow && (
+            <circle cx={w / 2} cy={h * 0.4} r={h * 0.46} fill="#FFC93C" opacity={0.25} />
+          )}
+          <circle
+            cx={w / 2}
+            cy={h * 0.4}
+            r={h * 0.32}
+            fill={glow ? "#FFC93C" : "#1A2133"}
             stroke="#FFC93C"
+            strokeWidth={1.5}
+          />
+          <path
+            d={`M ${w * 0.4} ${h * 0.4} q ${w * 0.1} ${h * 0.15} ${w * 0.2} 0`}
+            stroke={glow ? "#0F1420" : "#FFC93C"}
             strokeWidth={1.5}
             fill="none"
           />
-          <rect x={w * 0.38} y={h * 0.72} width={w * 0.24} height={h * 0.18} rx={2} fill="#8A93A6" />
+          <rect x={w * 0.4} y={h * 0.68} width={w * 0.2} height={h * 0.16} rx={2} fill="#8A93A6" />
         </>
       );
-    case "kalit":
+    }
+    case "kalit": {
+      const on = el ? isOn(el) : true;
+      const leverEnd = on
+        ? { x: w * 0.72, y: h * 0.5 }
+        : { x: w * 0.62, y: h * 0.18 };
       return (
         <>
-          <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
-          <circle cx={w * 0.28} cy={h * 0.5} r={3} fill="#F5F7FA" />
-          <circle cx={w * 0.72} cy={h * 0.5} r={3} fill="#F5F7FA" />
-          <line x1={w * 0.28} y1={h * 0.5} x2={w * 0.65} y2={h * 0.25} stroke="#F5F7FA" strokeWidth={2} />
+          <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke={on ? "#34D399" : "#8A93A6"} strokeWidth={1.5} />
+          <circle cx={w * 0.28} cy={h * 0.5} r={3.5} fill="#F5F7FA" />
+          <circle cx={w * 0.72} cy={h * 0.5} r={3.5} fill="#F5F7FA" />
+          <line x1={w * 0.28} y1={h * 0.5} x2={leverEnd.x} y2={leverEnd.y} stroke={on ? "#34D399" : "#F5F7FA"} strokeWidth={2.5} strokeLinecap="round" />
         </>
       );
-    case "otish_kalit":
+    }
+    case "otish_kalit": {
+      const pos = el ? isOn(el) : "OUT1";
+      const active = pos === "OUT1" ? { x: w * 0.85, y: h * 0.2 } : { x: w * 0.85, y: h * 0.8 };
       return (
         <>
-          <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
-          <circle cx={w * 0.22} cy={h * 0.5} r={3} fill="#F5F7FA" />
-          <circle cx={w * 0.85} cy={h * 0.2} r={3} fill="#F5F7FA" />
-          <circle cx={w * 0.85} cy={h * 0.8} r={3} fill="#F5F7FA" />
-          <line x1={w * 0.22} y1={h * 0.5} x2={w * 0.8} y2={h * 0.22} stroke="#F5F7FA" strokeWidth={2} />
+          <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke="#34D399" strokeWidth={1.5} />
+          <circle cx={w * 0.2} cy={h * 0.5} r={3.5} fill="#F5F7FA" />
+          <circle cx={w * 0.85} cy={h * 0.2} r={3.5} fill="#F5F7FA" opacity={pos === "OUT1" ? 1 : 0.35} />
+          <circle cx={w * 0.85} cy={h * 0.8} r={3.5} fill="#F5F7FA" opacity={pos === "OUT2" ? 1 : 0.35} />
+          <line x1={w * 0.2} y1={h * 0.5} x2={active.x} y2={active.y} stroke="#34D399" strokeWidth={2.5} strokeLinecap="round" />
         </>
       );
+    }
     case "rozetka":
       return (
         <>
@@ -94,31 +113,46 @@ function ElementIcon({ type, w, h }: { type: ElementType; w: number; h: number }
     case "korobka":
       return (
         <>
-          <rect
-            x={2} y={2} width={w - 4} height={h - 4} rx={6}
-            fill="#1A2133" stroke="#8A93A6" strokeWidth={1.5} strokeDasharray="4 3"
-          />
+          <rect x={2} y={2} width={w - 4} height={h - 4} rx={6} fill="#1A2133" stroke="#8A93A6" strokeWidth={1.5} strokeDasharray="4 3" />
           <circle cx={w / 2} cy={h / 2} r={4} fill="#FFC93C" />
         </>
       );
-    case "avtomat":
+    case "avtomat": {
+      const on = el ? isOn(el) : true;
       return (
         <>
-          <rect x={0} y={0} width={w} height={h} rx={6} fill="#1A2133" stroke="#F87171" strokeWidth={1.5} />
-          <rect x={w * 0.4} y={h * 0.2} width={w * 0.2} height={h * 0.6} rx={2} fill="#F87171" />
+          <rect x={0} y={0} width={w} height={h} rx={6} fill="#1A2133" stroke={on ? "#34D399" : "#F87171"} strokeWidth={1.5} />
+          <rect
+            x={w * 0.4}
+            y={on ? h * 0.18 : h * 0.4}
+            width={w * 0.2}
+            height={h * 0.42}
+            rx={2}
+            fill={on ? "#34D399" : "#F87171"}
+          />
         </>
       );
-    case "uzo":
+    }
+    case "uzo": {
+      const on = el ? isOn(el) : true;
       return (
         <>
-          <rect x={0} y={0} width={w} height={h} rx={6} fill="#1A2133" stroke="#3B82F6" strokeWidth={1.5} />
-          <circle cx={w / 2} cy={h / 2} r={h * 0.22} fill="none" stroke="#3B82F6" strokeWidth={1.5} />
-          <text x={w / 2} y={h / 2 + 3} textAnchor="middle" fontSize={7} fill="#3B82F6">T</text>
+          <rect x={0} y={0} width={w} height={h} rx={6} fill="#1A2133" stroke={on ? "#3B82F6" : "#F87171"} strokeWidth={1.5} />
+          <circle cx={w / 2} cy={h / 2} r={h * 0.22} fill="none" stroke={on ? "#3B82F6" : "#F87171"} strokeWidth={1.5} />
+          <text x={w / 2} y={h / 2 + 3} textAnchor="middle" fontSize={7} fill={on ? "#3B82F6" : "#F87171"}>T</text>
         </>
       );
+    }
     default:
       return <rect x={0} y={0} width={w} height={h} rx={8} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />;
   }
+}
+
+function portLabel(portType: string) {
+  if (portType === "L") return "L";
+  if (portType === "N") return "N";
+  if (portType === "PE") return "PE";
+  return "";
 }
 
 export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
@@ -126,10 +160,9 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
 
   const [elements, setElements] = useState<PlacedElement[]>([]);
   const [wires, setWires] = useState<Wire[]>([]);
-  const [past, setPast] = useState<Snapshot[]>([]);
-  const [future, setFuture] = useState<Snapshot[]>([]);
   const [scale, setScale] = useState(1);
   const [showPalette, setShowPalette] = useState(false);
+  const [deleteMode, setDeleteMode] = useState(false);
   const [pendingPort, setPendingPort] = useState<{
     elementId: string;
     portId: string;
@@ -139,12 +172,31 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
     elementId: string;
     portId: string;
   } | null>(null);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(
-    null
-  );
-  const dragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(
-    null
-  );
+  const [successBanner, setSuccessBanner] = useState(false);
+
+  const dragRef = useRef<{
+    id: string;
+    offsetX: number;
+    offsetY: number;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
+  const doneRef = useRef(false);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const litLamps = task ? computeLitLamps(elements, wires) : new Set<string>();
+
+  useEffect(() => {
+    if (!task) return;
+    const res = task.check(elements, wires);
+    if (res.success && !doneRef.current) {
+      doneRef.current = true;
+      setSuccessBanner(true);
+      onSuccess();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elements, wires]);
 
   if (!task) {
     return (
@@ -154,41 +206,7 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
     );
   }
 
-  function pushHistory() {
-    setPast((p) => [...p, { elements, wires }]);
-    setFuture([]);
-  }
-
-  function undo() {
-    if (past.length === 0) return;
-    const prev = past[past.length - 1];
-    setFuture((f) => [{ elements, wires }, ...f]);
-    setPast((p) => p.slice(0, -1));
-    setElements(prev.elements);
-    setWires(prev.wires);
-    setResult(null);
-  }
-
-  function redo() {
-    if (future.length === 0) return;
-    const next = future[0];
-    setPast((p) => [...p, { elements, wires }]);
-    setFuture((f) => f.slice(1));
-    setElements(next.elements);
-    setWires(next.wires);
-    setResult(null);
-  }
-
-  function resetAll() {
-    pushHistory();
-    setElements([]);
-    setWires([]);
-    setPendingPort(null);
-    setResult(null);
-  }
-
   function addElement(type: ElementType) {
-    pushHistory();
     const count = elements.length;
     const el: PlacedElement = {
       id: newId(type),
@@ -197,24 +215,30 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
       y: 40 + Math.floor(count / 3) * 100,
     };
     setElements((prev) => [...prev, el]);
-    setResult(null);
     setShowPalette(false);
   }
 
   function deleteElement(id: string) {
-    pushHistory();
     setElements((prev) => prev.filter((e) => e.id !== id));
-    setWires((prev) =>
-      prev.filter((w) => w.fromElementId !== id && w.toElementId !== id)
-    );
+    setWires((prev) => prev.filter((w) => w.fromElementId !== id && w.toElementId !== id));
     setPendingPort(null);
-    setResult(null);
   }
 
   function deleteWire(id: string) {
-    pushHistory();
     setWires((prev) => prev.filter((w) => w.id !== id));
-    setResult(null);
+  }
+
+  function toggleElementState(id: string) {
+    setElements((prev) =>
+      prev.map((e) => {
+        if (e.id !== id) return e;
+        if (e.type === "otish_kalit") {
+          return { ...e, state: e.state === "OUT2" ? "OUT1" : "OUT2" };
+        }
+        const cur = e.state !== false;
+        return { ...e, state: !cur };
+      })
+    );
   }
 
   function onPortTap(elementId: string, portId: string, portType: string) {
@@ -226,7 +250,6 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
       setPendingPort(null);
       return;
     }
-
     const inferredColor = inferColor(pendingPort.portType, portType);
     if (inferredColor) {
       completeWire(pendingPort, { elementId, portId }, inferredColor);
@@ -247,7 +270,6 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
     to: { elementId: string; portId: string },
     color: WireColor
   ) {
-    pushHistory();
     const wire: Wire = {
       id: newId("wire"),
       fromElementId: from.elementId,
@@ -259,7 +281,6 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
     setWires((prev) => [...prev, wire]);
     setPendingPort(null);
     setColorPickerFor(null);
-    setResult(null);
   }
 
   function pickColorForPending(color: WireColor) {
@@ -270,15 +291,20 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
   function portPos(el: PlacedElement, portId: string) {
     const def = ELEMENT_DEFS[el.type];
     const port = def.ports.find((p) => p.id === portId)!;
-    return {
-      x: el.x + port.x * def.width,
-      y: el.y + port.y * def.height,
-    };
+    return { x: el.x + port.x * def.width, y: el.y + port.y * def.height };
   }
 
   function handlePointerDown(e: React.PointerEvent, el: PlacedElement) {
     (e.target as Element).setPointerCapture?.(e.pointerId);
-    const svg = (e.currentTarget as SVGElement).ownerSVGElement;
+    dragRef.current = {
+      id: el.id,
+      offsetX: 0,
+      offsetY: 0,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+    };
+    const svg = svgRef.current;
     if (!svg) return;
     const pt = svg.createSVGPoint();
     pt.x = e.clientX;
@@ -286,15 +312,20 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
     const ctm = svg.getScreenCTM();
     if (!ctm) return;
     const loc = pt.matrixTransform(ctm.inverse());
-    dragRef.current = { id: el.id, offsetX: loc.x - el.x, offsetY: loc.y - el.y };
+    dragRef.current.offsetX = loc.x - el.x;
+    dragRef.current.offsetY = loc.y - el.y;
   }
 
-  function handlePointerMove(e: React.PointerEvent, svgEl: SVGSVGElement | null) {
-    if (!dragRef.current || !svgEl) return;
-    const pt = svgEl.createSVGPoint();
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!dragRef.current || !svgRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragRef.current.moved = true;
+
+    const pt = svgRef.current.createSVGPoint();
     pt.x = e.clientX;
     pt.y = e.clientY;
-    const ctm = svgEl.getScreenCTM();
+    const ctm = svgRef.current.getScreenCTM();
     if (!ctm) return;
     const loc = pt.matrixTransform(ctm.inverse());
     const { id, offsetX, offsetY } = dragRef.current;
@@ -308,21 +339,21 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
   }
 
   function handlePointerUp() {
-    if (dragRef.current) {
-      pushHistory();
-    }
+    const drag = dragRef.current;
     dragRef.current = null;
-  }
+    if (!drag) return;
 
-  function runCheck() {
-    const res = task!.check(elements, wires);
-    setResult(res);
-    if (res.success) {
-      onSuccess();
+    if (!drag.moved) {
+      if (deleteMode) {
+        deleteElement(drag.id);
+      } else {
+        const el = elements.find((e) => e.id === drag.id);
+        if (el && TOGGLEABLE_TYPES.includes(el.type)) {
+          toggleElementState(drag.id);
+        }
+      }
     }
   }
-
-  const svgRef = useRef<SVGSVGElement | null>(null);
 
   return (
     <div className="flex h-full flex-col bg-bg">
@@ -341,32 +372,14 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
             <ZoomIn size={16} />
           </button>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={undo}
-            disabled={past.length === 0}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover disabled:opacity-30"
-          >
-            <Undo2 size={16} />
-          </button>
-          <button
-            onClick={redo}
-            disabled={future.length === 0}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover disabled:opacity-30"
-          >
-            <Redo2 size={16} />
-          </button>
-          <button
-            onClick={resetAll}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="border-b border-white/10 bg-surface/50 px-4 py-2.5">
-        <p className="text-xs text-textSecondary">{task.instructions}</p>
+        <button
+          onClick={() => setDeleteMode((d) => !d)}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg active:bg-surfaceHover ${
+            deleteMode ? "bg-danger text-white" : "bg-surface text-textSecondary"
+          }`}
+        >
+          <Trash2 size={16} />
+        </button>
       </div>
 
       <div className="relative flex-1 overflow-auto">
@@ -376,7 +389,7 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
           height={500 * scale}
           viewBox="0 0 800 500"
           style={{ width: 800 * scale, height: 500 * scale }}
-          onPointerMove={(e) => handlePointerMove(e, svgRef.current)}
+          onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           className="touch-none"
         >
@@ -404,23 +417,8 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
                     deleteWire(w.id);
                   }}
                 />
-                <rect
-                  x={midX - 8}
-                  y={midY - 7}
-                  width={16}
-                  height={12}
-                  rx={2}
-                  fill="#0F1420"
-                  opacity={0.85}
-                />
-                <text
-                  x={midX}
-                  y={midY + 2}
-                  textAnchor="middle"
-                  fontSize={7.5}
-                  fontWeight="bold"
-                  fill={WIRE_COLOR_HEX[w.color]}
-                >
+                <rect x={midX - 8} y={midY - 7} width={16} height={12} rx={2} fill="#0F1420" opacity={0.85} />
+                <text x={midX} y={midY + 2} textAnchor="middle" fontSize={7.5} fontWeight="bold" fill={WIRE_COLOR_HEX[w.color]}>
                   {label}
                 </text>
               </g>
@@ -429,61 +427,26 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
 
           {elements.map((el) => {
             const def = ELEMENT_DEFS[el.type];
+            const lit = el.type === "lampa" ? litLamps.has(el.id) : undefined;
             return (
               <g key={el.id}>
                 <g
                   transform={`translate(${el.x}, ${el.y})`}
                   onPointerDown={(e) => handlePointerDown(e, el)}
-                  style={{ cursor: "grab" }}
+                  style={{ cursor: deleteMode ? "pointer" : "grab" }}
                 >
-                  <ElementIcon type={el.type} w={def.width} h={def.height} />
-                  <text
-                    x={def.width / 2}
-                    y={-6}
-                    textAnchor="middle"
-                    fontSize={9}
-                    fill="#8A93A6"
-                  >
+                  <ElementIcon type={el.type} w={def.width} h={def.height} el={el} lit={lit} />
+                  <text x={def.width / 2} y={-6} textAnchor="middle" fontSize={9} fill="#8A93A6">
                     {def.label}
                   </text>
-                  <circle
-                    cx={def.width - 2}
-                    cy={2}
-                    r={7}
-                    fill="#F87171"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      deleteElement(el.id);
-                    }}
-                  />
-                  <text
-                    x={def.width - 2}
-                    y={5}
-                    textAnchor="middle"
-                    fontSize={9}
-                    fill="#0F1420"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      deleteElement(el.id);
-                    }}
-                  >
-                    ×
-                  </text>
                 </g>
-
                 {def.ports.map((port) => {
                   const pos = portPos(el, port.id);
-                  const isPending =
-                    pendingPort?.elementId === el.id &&
-                    pendingPort?.portId === port.id;
+                  const isPending = pendingPort?.elementId === el.id && pendingPort?.portId === port.id;
                   const colorHex =
-                    port.type === "L"
-                      ? WIRE_COLOR_HEX.faza
-                      : port.type === "N"
-                      ? WIRE_COLOR_HEX.nol
-                      : port.type === "PE"
-                      ? WIRE_COLOR_HEX.yer
-                      : "#8A93A6";
+                    port.type === "L" ? WIRE_COLOR_HEX.faza :
+                    port.type === "N" ? WIRE_COLOR_HEX.nol :
+                    port.type === "PE" ? WIRE_COLOR_HEX.yer : "#8A93A6";
                   const lbl = portLabel(port.type);
                   return (
                     <g key={port.id}>
@@ -496,18 +459,11 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
                         strokeWidth={isPending ? 2 : 1}
                         onPointerDown={(e) => {
                           e.stopPropagation();
-                          onPortTap(el.id, port.id, port.type);
+                          if (!deleteMode) onPortTap(el.id, port.id, port.type);
                         }}
                       />
                       {lbl && (
-                        <text
-                          x={pos.x}
-                          y={pos.y - 10}
-                          textAnchor="middle"
-                          fontSize={7}
-                          fontWeight="bold"
-                          fill={colorHex}
-                        >
+                        <text x={pos.x} y={pos.y - 10} textAnchor="middle" fontSize={7} fontWeight="bold" fill={colorHex}>
                           {lbl}
                         </text>
                       )}
@@ -525,28 +481,12 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
         >
           <Plus size={28} />
         </button>
-      </div>
 
-      {result && (
-        <div
-          className={`px-4 py-3 text-sm ${
-            result.success
-              ? "bg-success/15 text-success"
-              : "bg-danger/15 text-danger"
-          }`}
-        >
-          {result.message}
-        </div>
-      )}
-
-      <div className="border-t border-white/10 px-4 py-3">
-        <button
-          onClick={runCheck}
-          className="flex w-full items-center justify-center gap-2 rounded-xl2 bg-accent py-3.5 font-display font-semibold text-bg active:opacity-80"
-        >
-          <CheckCircle2 size={20} />
-          Tekshirish
-        </button>
+        {successBanner && (
+          <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-success px-4 py-2 text-sm font-semibold text-bg shadow-card">
+            â To'g'ri ulandi!
+          </div>
+        )}
       </div>
 
       {showPalette && (

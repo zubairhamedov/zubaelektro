@@ -85,6 +85,7 @@ function ElementIcon({
           <circle cx={w * 0.28} cy={h * 0.5} r={3.5} fill="#F5F7FA" />
           <circle cx={w * 0.72} cy={h * 0.5} r={3.5} fill="#F5F7FA" />
           <line x1={w * 0.28} y1={h * 0.5} x2={leverEnd.x} y2={leverEnd.y} stroke={on ? "#34D399" : "#F5F7FA"} strokeWidth={2.5} strokeLinecap="round" />
+          <circle cx={w * 0.5} cy={h * 0.14} r={3} fill={on ? "#34D399" : "#4B5563"} />
         </>
       );
     }
@@ -346,6 +347,7 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
     if (!drag.moved) {
       if (deleteMode) {
         deleteElement(drag.id);
+        setDeleteMode(false);
       } else {
         const el = elements.find((e) => e.id === drag.id);
         if (el && TOGGLEABLE_TYPES.includes(el.type)) {
@@ -393,6 +395,16 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
           onPointerUp={handlePointerUp}
           className="touch-none"
         >
+          <rect
+            x={0}
+            y={0}
+            width={800}
+            height={500}
+            fill="transparent"
+            onPointerDown={() => {
+              if (deleteMode) setDeleteMode(false);
+            }}
+          />
           {wires.map((w) => {
             const fromEl = elements.find((e) => e.id === w.fromElementId);
             const toEl = elements.find((e) => e.id === w.toElementId);
@@ -414,7 +426,10 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
                   strokeLinecap="round"
                   onPointerDown={(e) => {
                     e.stopPropagation();
-                    deleteWire(w.id);
+                    if (deleteMode) {
+                      deleteWire(w.id);
+                      setDeleteMode(false);
+                    }
                   }}
                 />
                 <rect x={midX - 8} y={midY - 7} width={16} height={12} rx={2} fill="#0F1420" opacity={0.85} />

@@ -475,19 +475,14 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
           })}
         </svg>
 
-        <button
-          onClick={() => setShowPalette(true)}
-          className="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-card active:opacity-80"
-        >
-          <Plus size={28} />
-        </button>
-
-        {successBanner && (
-          <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-success px-4 py-2 text-sm font-semibold text-bg shadow-card">
-            â To'g'ri ulandi!
-          </div>
-        )}
       </div>
+
+      <button
+        onClick={() => setShowPalette(true)}
+        className="fixed bottom-6 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-card active:opacity-80"
+      >
+        <Plus size={28} />
+      </button>
 
       {showPalette && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">

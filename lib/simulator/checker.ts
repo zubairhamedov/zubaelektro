@@ -1,7 +1,8 @@
-import { ELEMENT_DEFS } from "./elements";
+import { ELEMENT_DEFS, getActiveLinks } from "./elements";
 import { ElementType, PlacedElement, Wire, WireColor } from "./types";
 
 function bfsReachable(
+
   elements: PlacedElement[],
   wires: Wire[],
   startElementId: string,
@@ -32,12 +33,12 @@ function bfsReachable(
     )
   );
 
-  elements.forEach((el) => {
-    const def = ELEMENT_DEFS[el.type];
-    def.internalLinks.forEach(([a, b]) =>
+    elements.forEach((el) => {
+    getActiveLinks(el).forEach(([a, b]) =>
       addEdge(`${el.id}:${a}`, `${el.id}:${b}`, false)
     );
   });
+
 
   const start = `${startElementId}:${startPort}`;
   const visited = new Set([start]);
@@ -66,6 +67,26 @@ function reach(
   color: WireColor
 ) {
   return bfsReachable(elements, wires, manbaId, netPort, color);
+}
+
+export function computeLitLamps(
+  elements: PlacedElement[],
+  wires: Wire[]
+): Set<string> {
+  const manba = findManba(elements);
+  if (!manba) return new Set();
+  const fazaSet = reach(elements, wires, manba.id, "L", "faza");
+  const nolSet = reach(elements, wires, manba.id, "N", "nol");
+  const lit = new Set<string>();
+  elements
+    .filter((e) => e.type === "lampa")
+    .forEach((l) => {
+      const ok =
+        (fazaSet.has(`${l.id}:P1`) && nolSet.has(`${l.id}:P2`)) ||
+        (fazaSet.has(`${l.id}:P2`) && nolSet.has(`${l.id}:P1`));
+      if (ok) lit.add(l.id);
+    });
+  return lit;
 }
 
 type CheckResult = { success: boolean; message: string };

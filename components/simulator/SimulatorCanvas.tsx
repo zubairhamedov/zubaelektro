@@ -308,3 +308,312 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
   }
 
   function handlePointerUp() {
+    if (dragRef.current) {
+      pushHistory();
+    }
+    dragRef.current = null;
+  }
+
+  function runCheck() {
+    const res = task!.check(elements, wires);
+    setResult(res);
+    if (res.success) {
+      onSuccess();
+    }
+  }
+
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  return (
+    <div className="flex h-full flex-col bg-bg">
+      <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setScale((s) => Math.max(0.5, s - 0.1))}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover"
+          >
+            <ZoomOut size={16} />
+          </button>
+          <button
+            onClick={() => setScale((s) => Math.min(2, s + 0.1))}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover"
+          >
+            <ZoomIn size={16} />
+          </button>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={undo}
+            disabled={past.length === 0}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover disabled:opacity-30"
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            onClick={redo}
+            disabled={future.length === 0}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover disabled:opacity-30"
+          >
+            <Redo2 size={16} />
+          </button>
+          <button
+            onClick={resetAll}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-textSecondary active:bg-surfaceHover"
+          >
+            <RotateCcw size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className="border-b border-white/10 bg-surface/50 px-4 py-2.5">
+        <p className="text-xs text-textSecondary">{task.instructions}</p>
+      </div>
+
+      <div className="relative flex-1 overflow-auto">
+        <svg
+          ref={svgRef}
+          width={800 * scale}
+          height={500 * scale}
+          viewBox="0 0 800 500"
+          style={{ width: 800 * scale, height: 500 * scale }}
+          onPointerMove={(e) => handlePointerMove(e, svgRef.current)}
+          onPointerUp={handlePointerUp}
+          className="touch-none"
+        >
+          {wires.map((w) => {
+            const fromEl = elements.find((e) => e.id === w.fromElementId);
+            const toEl = elements.find((e) => e.id === w.toElementId);
+            if (!fromEl || !toEl) return null;
+            const from = portPos(fromEl, w.fromPort);
+            const to = portPos(toEl, w.toPort);
+            const midX = (from.x + to.x) / 2;
+            const midY = (from.y + to.y) / 2;
+            const label = w.color === "faza" ? "L" : w.color === "nol" ? "N" : "PE";
+            return (
+              <g key={w.id}>
+                <line
+                  x1={from.x}
+                  y1={from.y}
+                  x2={to.x}
+                  y2={to.y}
+                  stroke={WIRE_COLOR_HEX[w.color]}
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    deleteWire(w.id);
+                  }}
+                />
+                <rect
+                  x={midX - 8}
+                  y={midY - 7}
+                  width={16}
+                  height={12}
+                  rx={2}
+                  fill="#0F1420"
+                  opacity={0.85}
+                />
+                <text
+                  x={midX}
+                  y={midY + 2}
+                  textAnchor="middle"
+                  fontSize={7.5}
+                  fontWeight="bold"
+                  fill={WIRE_COLOR_HEX[w.color]}
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
+
+          {elements.map((el) => {
+            const def = ELEMENT_DEFS[el.type];
+            return (
+              <g key={el.id}>
+                <g
+                  transform={`translate(${el.x}, ${el.y})`}
+                  onPointerDown={(e) => handlePointerDown(e, el)}
+                  style={{ cursor: "grab" }}
+                >
+                  <ElementIcon type={el.type} w={def.width} h={def.height} />
+                  <text
+                    x={def.width / 2}
+                    y={-6}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fill="#8A93A6"
+                  >
+                    {def.label}
+                  </text>
+                  <circle
+                    cx={def.width - 2}
+                    cy={2}
+                    r={7}
+                    fill="#F87171"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      deleteElement(el.id);
+                    }}
+                  />
+                  <text
+                    x={def.width - 2}
+                    y={5}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fill="#0F1420"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      deleteElement(el.id);
+                    }}
+                  >
+                    ×
+                  </text>
+                </g>
+
+                {def.ports.map((port) => {
+                  const pos = portPos(el, port.id);
+                  const isPending =
+                    pendingPort?.elementId === el.id &&
+                    pendingPort?.portId === port.id;
+                  const colorHex =
+                    port.type === "L"
+                      ? WIRE_COLOR_HEX.faza
+                      : port.type === "N"
+                      ? WIRE_COLOR_HEX.nol
+                      : port.type === "PE"
+                      ? WIRE_COLOR_HEX.yer
+                      : "#8A93A6";
+                  const lbl = portLabel(port.type);
+                  return (
+                    <g key={port.id}>
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={isPending ? 8 : 6}
+                        fill={colorHex}
+                        stroke={isPending ? "#FFC93C" : "#0F1420"}
+                        strokeWidth={isPending ? 2 : 1}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          onPortTap(el.id, port.id, port.type);
+                        }}
+                      />
+                      {lbl && (
+                        <text
+                          x={pos.x}
+                          y={pos.y - 10}
+                          textAnchor="middle"
+                          fontSize={7}
+                          fontWeight="bold"
+                          fill={colorHex}
+                        >
+                          {lbl}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
+        </svg>
+
+        <button
+          onClick={() => setShowPalette(true)}
+          className="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-card active:opacity-80"
+        >
+          <Plus size={28} />
+        </button>
+      </div>
+
+      {result && (
+        <div
+          className={`px-4 py-3 text-sm ${
+            result.success
+              ? "bg-success/15 text-success"
+              : "bg-danger/15 text-danger"
+          }`}
+        >
+          {result.message}
+        </div>
+      )}
+
+      <div className="border-t border-white/10 px-4 py-3">
+        <button
+          onClick={runCheck}
+          className="flex w-full items-center justify-center gap-2 rounded-xl2 bg-accent py-3.5 font-display font-semibold text-bg active:opacity-80"
+        >
+          <CheckCircle2 size={20} />
+          Tekshirish
+        </button>
+      </div>
+
+      {showPalette && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
+          <div className="w-full max-w-md rounded-t-3xl bg-surface p-5 pb-8">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="font-display text-lg font-semibold">Element qo'shish</p>
+              <button
+                onClick={() => setShowPalette(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-textSecondary"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {ALL_TYPES.map((type) => {
+                const def = ELEMENT_DEFS[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => addElement(type)}
+                    className="flex flex-col items-center gap-1.5 rounded-xl2 border border-white/10 bg-bg p-2.5 active:bg-surfaceHover"
+                  >
+                    <svg width={40} height={32} viewBox={`0 0 ${def.width} ${def.height}`}>
+                      <ElementIcon type={type} w={def.width} h={def.height} />
+                    </svg>
+                    <span className="text-center text-[10px] leading-tight text-textSecondary">
+                      {def.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {colorPickerFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div className="w-full max-w-xs rounded-xl2 bg-surface p-5 text-center shadow-card">
+            <p className="mb-4 font-display font-semibold">Sim rangini tanlang</p>
+            <div className="flex justify-center gap-3">
+              {(["faza", "nol", "yer"] as WireColor[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => pickColorForPending(c)}
+                  className="flex h-14 w-14 items-center justify-center rounded-full"
+                  style={{ backgroundColor: WIRE_COLOR_HEX[c] }}
+                >
+                  <span className="text-[10px] font-bold text-bg">
+                    {c === "faza" ? "L" : c === "nol" ? "N" : "PE"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setColorPickerFor(null);
+                setPendingPort(null);
+              }}
+              className="mt-4 flex items-center justify-center gap-1 text-sm text-textSecondary"
+            >
+              <X size={14} /> Bekor qilish
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

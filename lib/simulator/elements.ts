@@ -106,6 +106,7 @@ export const ELEMENT_DEFS: Record<ElementType, ElementDef> = {
     internalLinks: [["IN", "OUT"]],
   },
 };
+
 export const WIRE_COLOR_HEX: Record<string, string> = {
   faza: "#EF4444",
   nol: "#3B82F6",
@@ -127,4 +128,3 @@ export function getActiveLinks(el: {
   }
   return def.internalLinks;
 }
-

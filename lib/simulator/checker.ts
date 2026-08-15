@@ -2,7 +2,6 @@ import { ELEMENT_DEFS, getActiveLinks } from "./elements";
 import { ElementType, PlacedElement, Wire, WireColor } from "./types";
 
 function bfsReachable(
-
   elements: PlacedElement[],
   wires: Wire[],
   startElementId: string,
@@ -33,12 +32,11 @@ function bfsReachable(
     )
   );
 
-    elements.forEach((el) => {
+  elements.forEach((el) => {
     getActiveLinks(el).forEach(([a, b]) =>
       addEdge(`${el.id}:${a}`, `${el.id}:${b}`, false)
     );
   });
-
 
   const start = `${startElementId}:${startPort}`;
   const visited = new Set([start]);
@@ -87,6 +85,17 @@ export function computeLitLamps(
       if (ok) lit.add(l.id);
     });
   return lit;
+}
+
+export function getReachSets(elements: PlacedElement[], wires: Wire[]) {
+  const manba = findManba(elements);
+  if (!manba)
+    return { faza: new Set<string>(), nol: new Set<string>(), yer: new Set<string>() };
+  return {
+    faza: reach(elements, wires, manba.id, "L", "faza"),
+    nol: reach(elements, wires, manba.id, "N", "nol"),
+    yer: reach(elements, wires, manba.id, "PE", "yer"),
+  };
 }
 
 type CheckResult = { success: boolean; message: string };
@@ -206,7 +215,7 @@ export const TASKS: Record<string, Task> = {
         return {
           success: false,
           message:
-            "Faza, Nol va Yer — barchasi to'g'ri kontaktga ulanishi kerak.",
+            "Faza, Nol va Yer â barchasi to'g'ri kontaktga ulanishi kerak.",
         };
       }
       return { success: true, message: "To'g'ri! Rozetka to'liq ulandi." };
@@ -216,7 +225,7 @@ export const TASKS: Record<string, Task> = {
   "ikki-joydan-boshqarish": {
     title: "Ikki joydan boshqarish",
     instructions:
-      "2 ta O'tish kalitini va Lampani ulang: Manba → 1-kalit → 2-kalit → Lampa.",
+      "2 ta O'tish kalitini va Lampani ulang: Manba â 1-kalit â 2-kalit â Lampa.",
     allowedElements: ["manba", "otish_kalit", "lampa"],
     check: (elements, wires) => {
       const manba = findManba(elements);
@@ -284,7 +293,7 @@ export const TASKS: Record<string, Task> = {
 
   "avtomat-va-uzo": {
     title: "Avtomat va UZO orqali himoya",
-    instructions: "Manba → Avtomat → UZO → Lampa ketma-ketligida ulang.",
+    instructions: "Manba â Avtomat â UZO â Lampa ketma-ketligida ulang.",
     allowedElements: ["manba", "avtomat", "uzo", "lampa"],
     check: (elements, wires) => {
       const manba = findManba(elements);
@@ -324,7 +333,7 @@ export const TASKS: Record<string, Task> = {
   "shitni-yigish": {
     title: "To'liq shit yig'ish",
     instructions:
-      "Manba → Avtomat → UZO → kamida 2 ta Rozetka (Korobka orqali) ulang.",
+      "Manba â Avtomat â UZO â kamida 2 ta Rozetka (Korobka orqali) ulang.",
     allowedElements: ["manba", "avtomat", "uzo", "korobka", "rozetka"],
     check: (elements, wires) => {
       const manba = findManba(elements);
@@ -360,7 +369,7 @@ export const TASKS: Record<string, Task> = {
   "xona-sxemasi": {
     title: "To'liq xona sxemasi",
     instructions:
-      "Manba → Avtomat → UZO → Korobka → Kalit+Lampa va kamida 1 ta Rozetka.",
+      "Manba â Avtomat â UZO â Korobka â Kalit+Lampa va kamida 1 ta Rozetka.",
     allowedElements: [
       "manba",
       "avtomat",

@@ -110,7 +110,7 @@ function ElementIcon({
           <circle cx={w * 0.38} cy={h * 0.42} r={3} fill="#8A93A6" />
           <circle cx={w * 0.62} cy={h * 0.42} r={3} fill="#8A93A6" />
           <rect x={w * 0.44} y={h * 0.6} width={w * 0.12} height={3} fill="#34D399" />
-          <circle cx={w * 0.5} cy={h * 0.16} r={2.5} fill={powered ? "#34D399" : "#4B5563"} />
+          <circle cx={w * 0.5} cy={h * 0.14} r={4} fill={powered ? "#34D399" : "#4B5563"} stroke="#0F1420" strokeWidth={0.5} />
         </>
       );
     }
@@ -134,6 +134,7 @@ function ElementIcon({
             rx={2}
             fill={on ? "#34D399" : "#F87171"}
           />
+          <circle cx={w * 0.85} cy={h * 0.15} r={3} fill={on ? "#34D399" : "#4B5563"} />
         </>
       );
     }
@@ -144,6 +145,7 @@ function ElementIcon({
           <rect x={0} y={0} width={w} height={h} rx={6} fill="#1A2133" stroke={on ? "#3B82F6" : "#F87171"} strokeWidth={1.5} />
           <circle cx={w / 2} cy={h / 2} r={h * 0.22} fill="none" stroke={on ? "#3B82F6" : "#F87171"} strokeWidth={1.5} />
           <text x={w / 2} y={h / 2 + 3} textAnchor="middle" fontSize={7} fill={on ? "#3B82F6" : "#F87171"}>T</text>
+          <circle cx={w * 0.85} cy={h * 0.15} r={3} fill={on ? "#34D399" : "#4B5563"} />
         </>
       );
     }
@@ -428,7 +430,7 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
                   x2={to.x}
                   y2={to.y}
                   stroke="transparent"
-                  strokeWidth={22}
+                  strokeWidth={40}
                   strokeLinecap="round"
                   onPointerDown={(e) => {
                     e.stopPropagation();

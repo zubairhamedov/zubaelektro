@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, Trash2, X, Plus } from "lucide-react";
 import { ELEMENT_DEFS, WIRE_COLOR_HEX, TOGGLEABLE_TYPES } from "@/lib/simulator/elements";
 import { ElementType, PlacedElement, Wire, WireColor } from "@/lib/simulator/types";
-import { getTask, computeLitLamps } from "@/lib/simulator/checker";
+import { getTask, computeLitLamps, getReachSets } from "@/lib/simulator/checker";
 
 type Props = {
   taskSlug: string;
@@ -102,15 +102,18 @@ function ElementIcon({
         </>
       );
     }
-    case "rozetka":
+    case "rozetka": {
+      const powered = lit ?? false;
       return (
         <>
           <circle cx={w / 2} cy={h / 2} r={Math.min(w, h) * 0.46} fill="#1A2133" stroke="#FFC93C" strokeWidth={1.5} />
           <circle cx={w * 0.38} cy={h * 0.42} r={3} fill="#8A93A6" />
           <circle cx={w * 0.62} cy={h * 0.42} r={3} fill="#8A93A6" />
           <rect x={w * 0.44} y={h * 0.6} width={w * 0.12} height={3} fill="#34D399" />
+          <circle cx={w * 0.5} cy={h * 0.16} r={2.5} fill={powered ? "#34D399" : "#4B5563"} />
         </>
       );
+    }
     case "korobka":
       return (
         <>
@@ -187,6 +190,9 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const litLamps = task ? computeLitLamps(elements, wires) : new Set<string>();
+  const reachSets = task
+    ? getReachSets(elements, wires)
+    : { faza: new Set<string>(), nol: new Set<string>(), yer: new Set<string>() };
 
   useEffect(() => {
     if (!task) return;
@@ -421,8 +427,8 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
                   y1={from.y}
                   x2={to.x}
                   y2={to.y}
-                  stroke={WIRE_COLOR_HEX[w.color]}
-                  strokeWidth={3}
+                  stroke="transparent"
+                  strokeWidth={22}
                   strokeLinecap="round"
                   onPointerDown={(e) => {
                     e.stopPropagation();
@@ -432,8 +438,18 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
                     }
                   }}
                 />
-                <rect x={midX - 8} y={midY - 7} width={16} height={12} rx={2} fill="#0F1420" opacity={0.85} />
-                <text x={midX} y={midY + 2} textAnchor="middle" fontSize={7.5} fontWeight="bold" fill={WIRE_COLOR_HEX[w.color]}>
+                <line
+                  x1={from.x}
+                  y1={from.y}
+                  x2={to.x}
+                  y2={to.y}
+                  stroke={WIRE_COLOR_HEX[w.color]}
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  pointerEvents="none"
+                />
+                <rect x={midX - 8} y={midY - 7} width={16} height={12} rx={2} fill="#0F1420" opacity={0.85} pointerEvents="none" />
+                <text x={midX} y={midY + 2} textAnchor="middle" fontSize={7.5} fontWeight="bold" fill={WIRE_COLOR_HEX[w.color]} pointerEvents="none">
                   {label}
                 </text>
               </g>
@@ -442,7 +458,12 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
 
           {elements.map((el) => {
             const def = ELEMENT_DEFS[el.type];
-            const lit = el.type === "lampa" ? litLamps.has(el.id) : undefined;
+            const lit =
+              el.type === "lampa"
+                ? litLamps.has(el.id)
+                : el.type === "rozetka"
+                ? reachSets.faza.has(`${el.id}:L`) && reachSets.nol.has(`${el.id}:N`)
+                : undefined;
             return (
               <g key={el.id}>
                 <g
@@ -450,6 +471,7 @@ export default function SimulatorCanvas({ taskSlug, onSuccess }: Props) {
                   onPointerDown={(e) => handlePointerDown(e, el)}
                   style={{ cursor: deleteMode ? "pointer" : "grab" }}
                 >
+                  <rect x={-8} y={-8} width={def.width + 16} height={def.height + 16} fill="transparent" />
                   <ElementIcon type={el.type} w={def.width} h={def.height} el={el} lit={lit} />
                   <text x={def.width / 2} y={-6} textAnchor="middle" fontSize={9} fill="#8A93A6">
                     {def.label}
